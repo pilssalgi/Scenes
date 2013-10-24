@@ -8,6 +8,8 @@
 
  /* ************************************************************
      HOW TO USE
+    Scenes.addScene(sceneID,sceneFrame,type,option)
+
 
     Scenes.addSceneActor(sceneID,fn)
     Scenes.addFrameActor(startFrame,totalFrame,fn)
@@ -179,7 +181,6 @@
                 this.scene.estimate = estimate;
                 this.scene.type     = this.getScene(this.scene.estimate).type;
             }
-
             // $(this).trigger(this.EVENT_DELETE_SCROLL);
             // this.scrollPossible = false;
             // this.scrollPossibleOn(500);

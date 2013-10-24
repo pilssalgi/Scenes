@@ -1,5 +1,8 @@
 /**
+ * 2013.08
+ * Scroll ver 0.04
  */
+
 (function () {
     var _bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
     var getPagePos = function(e){
@@ -25,22 +28,19 @@
 
     function Scroll(option){
         this.config     = {
-            acc     : 0.1,
-            speed   : 0.94,
-            touchAcc : 5,
-            type    : "wheel",
-            step    : function(){}
+            speed       : 0.1,
+            friction    : 0.94,
+            touchSpeed  : 5,
+            type        : "wheel",
+            step        : function(){}
         }
 
         $.extend(this.config,option);
 
-        this.offset     = 0;
-        this.timer      = null;
-
-        
+        this.offset         = 0;
+        this.isRender       = false;
         this.onRender       = _bind(this.onRender,this);
         
-
         //wheelEvent
         this.onWheel = _bind(this.onWheel,this);
         $(document).bind("mousewheel", this.onWheel);
@@ -69,6 +69,10 @@
 
     Scroll.prototype.EVENT_SCROLLSTART      = "scroll_start";
     Scroll.prototype.EVENT_SCROLLAFTER      = "scroll_after";
+
+    Scroll.prototype.event_dispatch = function(event){
+        $(this).trigger(event);
+    }
     /* *********************************************************
     *  Event Handler
     ********************************************************** */
@@ -94,9 +98,9 @@
         this.t_moveP.time = new Date().getTime();
 
         var speed = (this.touchMoveOffset)/(this.t_startP.time - this.t_moveP.time);
-        this.offset = -this.config.touchAcc*speed;
+        this.offset = -this.config.touchSpeed*speed;
 
-        this.scrollTimerStart();
+        this.startRender();
     }
 
 
@@ -110,55 +114,53 @@
 
     Scroll.prototype.onWheel = function(event, delta, deltaX, deltaY){
         if(delta > 0){
-            this.offset -= this.config.acc;
+            this.offset -= this.config.speed;
         }else if(delta < 0){
-            this.offset += this.config.acc;
+            this.offset += this.config.speed;
         }
-
-        this.scrollTimerStart();
         this.startRender();
     }
 
-    Scroll.prototype.scrollTimerStart = function(){
-        var scope = this;
-        if(this.scrollTimer){
-            this.event_dispatch(this.EVENT_SCROLLSTART);
-            clearInterval(this.scrollTimer);
-        }
-
-        this.scrollTimer = setInterval(function(){
-            scope.event_dispatch(scope.EVENT_SCROLLAFTER);
-            scope.stopRender();
-            clearInterval(scope.scrollTimer);
-        },5000)
-    }
-
-    Scroll.prototype.event_dispatch = function(event){
-        $(this).trigger(event);
-    }
     /* *********************************************************
     *  Rendering
     ********************************************************** */
     
 
     Scroll.prototype.startRender = function(){
-        if(!this.timer){
-            this.timer = setInterval(this.onRender,1000/30);
+        if(!this.isRender){
+            this.isRender = true;
+            this.renderingID = requestAnimationFrame(this.onRender);
+            this.event_dispatch(this.EVENT_SCROLLSTART);
         }
     }
 
     Scroll.prototype.stopRender = function(){
-        if(this.timer){
-            clearInterval(this.timer);
-            this.timer = null;
-            this.offset = 0;
-        }
+        this.isRender = false;
+        cancelAnimationFrame(this.renderingID);
     }
 
     Scroll.prototype.onRender = function(){
-        this.offset *= this.config.speed;
-        this.config.step();
+        if(!this.isRender){
+            this.offset = 0;
+            return;
+        }
+
+        this.offset *= this.config.friction;
+        this.config.step(); 
+
+        var check = this.offset < 0? this.offset*-1:this.offset;
+        if(check > 0.00001){
+            this.renderingID = requestAnimationFrame(this.onRender);
+        }else{
+            this.isRender = false;
+            this.event_dispatch(this.EVENT_SCROLLAFTER);
+        }
+
+        // console.log(this.offset)
     }
+
+
+
 
     this.Scroll = Scroll;
 }).apply(window);

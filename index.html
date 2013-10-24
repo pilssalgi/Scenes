@@ -27,25 +27,26 @@
 		<script src="js/jquery.easing.1.3.js"></script>
 		<script src="js/jquery.mousewheel.js"></script>
 		<script src="js/jquery.scroll.js"></script>
-		<script src="js/jquery.scenes.js"></script>
+		<script src="js/jqeury.scenes-0.0.6.js"></script>
 
 		<script>
 			$(document).ready(function(){
 				var scroll,scenes;
-				scroll = new Scroll({acc:0.94, speed:0.94, touchAcc:10, step:scrolling});
+				scroll = new Scroll({speed:1.7, friction:0.89, touchSpeed:10, step:scrolling});
 
 				// $(scroll).bind(scroll.EVENT_TOUCHSTART, onMyTouchStart);
 				// $(scroll).bind(scroll.EVENT_TOUCHEND, onMyTouchEnd);
 				// $(scroll).bind(scroll.EVENT_SCROLLSTART, onScrollStart);
 				// $(scroll).bind(scroll.EVENT_SCROLLAFTER, onScrollAfter);
 
-				scenes = new Scenes();
+				scenes = new Scenes({stats:true});
 				$(scenes).bind(scenes.EVENT_DELETE_SCROLL, scrollDel);
 
-				scenes.addScene(0,300,"quick",{ duration:1000,ease:"easeInOutQuint"});
-				scenes.addScene(1,300,"normal",{ duration:1000,ease:"easeInOutQuint", jump : {prev:0}});
-				scenes.addScene(2,300,"quick",{ duration:1000,ease:"easeInOutQuint"});
-				scenes.addScene(3,300,"quick",{ duration:1000,ease:"easeInOutQuint", jump : {next:1}});
+				scenes.addScene(0,300,"normal",{ duration:1000,ease:"easeInOutQuint"});
+				scenes.addScene(1,300,"quick",{ duration:1000,ease:"easeInOutQuint"});
+				scenes.addScene(2,300,"normal",{ duration:1000,ease:"easeInOutQuint"});
+				scenes.addScene(3,300,"normal",{ duration:1000,ease:"easeInOutQuint"});
+
 				// scenes.addScene(3,300,"normal",{ duration:1000,ease:"easeInOutQuint"});
 				// scenes.addScene(4,300,"normal",{ duration:1000,ease:"easeInOutQuint"});
 
@@ -55,33 +56,25 @@
 					scene3 = $("#scene3"),
 					scene4 = $("#scene4");
 
-				scenes.addToScene(0,function(){
-					scene0.css({top:(-(this.progress*100))+"%"});
-					scene1.css({top:(100-(this.progress*100))+"%"});
+				scenes.addSceneActor(0,function(progress){
+					scene0.css({top:(-(progress*100))+"%"});
+					scene1.css({top:(100-(progress*100))+"%"});
 				});
 
-				scenes.addToScene(1,function(){
-					scene1.css({top:(-(this.progress*100))+"%"});
-					scene2.css({top:(100-(this.progress*100))+"%"});
+				scenes.addSceneActor(1,function(progress){
+					scene1.css({top:(-(progress*100))+"%"});
+					scene2.css({top:(100-(progress*100))+"%"});
 				});
 
-				scenes.addToScene(2,function(){
-					scene2.css({top:(-(this.progress*100))+"%"});
-					scene3.css({top:(100-(this.progress*100))+"%"});
+				scenes.addSceneActor(2,function(progress){
+					scene2.css({top:(-(progress*100))+"%"});
+					scene3.css({top:(100-(progress*100))+"%"});
 				});
 
-				scenes.addToScene(3,function(){
-					scene3.css({top:(-(this.progress*100))+"%"});
-					scene4.css({top:(100-(this.progress*100))+"%"});
+				scenes.addSceneActor(3,function(progress){
+					scene3.css({top:(-(progress*100))+"%"});
+					scene4.css({top:(100-(progress*100))+"%"});
 				});
-
-				scenes.addToScene(4,function(){
-					scene4.css({top:(-(this.progress*100))+"%"});
-				});
-
-				scenes.addToActor(300,0,function(){
-					// console.log(this.oldProgress)
-				})
 
 
 				function scrolling(){
@@ -91,10 +84,7 @@
 				function scrollDel(){
 					scroll.stopRender();
 				}
-
 				// scenes.gotoAndScene(2)
-
-
 			})
 		</script>
 	</head>
@@ -103,6 +93,6 @@
 		<div id="scene1" class="scene"><p>Scene1</p></div>
 		<div id="scene2" class="scene"><p>Scene2</p></div>
 		<div id="scene3" class="scene"><p>Scene3</p></div>
-		<div id="scene4" class="scene"><p>Scene4</p></div>
+		<div id="scene4" class="scene"><p>END</p></div>
 	</body>
 </html>
