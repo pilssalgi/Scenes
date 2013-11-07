@@ -10,7 +10,6 @@
      HOW TO USE
     Scenes.addScene(sceneID,sceneFrame,type,option)
 
-
     Scenes.addSceneActor(sceneID,fn)
     Scenes.addFrameActor(startFrame,totalFrame,fn)
     Scenes.addSceneFrameActor(sceneID,startFrame,totalFrame,fn)
