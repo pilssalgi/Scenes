@@ -1,6 +1,6 @@
 /**
- * 2013.08
- * Scroll ver 0.04
+ * 2014.01
+ * Scroll ver 0.07
  */
 
 (function () {
@@ -32,13 +32,20 @@
             friction    : 0.94,
             touchSpeed  : 5,
             type        : "wheel",
-            step        : function(){}
+            screenFix   : false,
+            step        : function(){},
+            start       : function(){},
+            stop        : function(){},
+            touchStart  : function(){},
+            touchMove   : function(){},
+            touchEnd    : function(){}
         }
 
         $.extend(this.config,option);
 
         this.offset         = 0;
         this.isRender       = false;
+        this.renderingID;
         this.onRender       = _bind(this.onRender,this);
         
         //wheelEvent
@@ -60,37 +67,43 @@
 
     }
 
+    Scroll.prototype.optionChange = function(option){
+        $.extend(this.config,option);
+    }
+
 
     /* *********************************************************
     *  SCROLL EVENT 
     ********************************************************** */
-    Scroll.prototype.EVENT_TOUCHSTART       = "touch_start";
-    Scroll.prototype.EVENT_TOUCHEND         = "touch_end";
+    // Scroll.prototype.EVENT_TOUCHSTART       = "touch_start";
+    // Scroll.prototype.EVENT_TOUCHEND         = "touch_end";
 
-    Scroll.prototype.EVENT_SCROLLSTART      = "scroll_start";
-    Scroll.prototype.EVENT_SCROLLAFTER      = "scroll_after";
+    // Scroll.prototype.EVENT_SCROLLSTART      = "scroll_start";
+    // Scroll.prototype.EVENT_SCROLLAFTER      = "scroll_after";
 
-    Scroll.prototype.event_dispatch = function(event){
-        $(this).trigger(event);
-    }
+    // Scroll.prototype.event_dispatch = function(event){
+        // $(this).trigger(event);
+    // }
     /* *********************************************************
     *  Event Handler
     ********************************************************** */
     
     Scroll.prototype.onTouchStart = function(e){
-        $(this).trigger(this.EVENT_TOUCHSTART);
+        // $(this).trigger(this.EVENT_TOUCHSTART);
         // e.preventDefault();
         this.touchMoveOffset    = 0;
         this.isTouch            = true;
         this.t_startP           = this.getTouchInfo(e);
         this.startRender();
+        this.config.touchStart();
     }
 
     Scroll.prototype.onTouchMove = function(e){
-        e.preventDefault();
+        if(this.config.screenFix)e.preventDefault();
         this.offset     = 0;
         this.t_moveP    = this.getTouchInfo(e);
         this.touchMoveOffset = this.t_startP.y - this.t_moveP.y
+        this.config.touchMove(this.touchMoveOffset);
     }
 
     Scroll.prototype.onTouchEnd = function(e){
@@ -99,8 +112,8 @@
 
         var speed = (this.touchMoveOffset)/(this.t_startP.time - this.t_moveP.time);
         this.offset = -this.config.touchSpeed*speed;
-
         this.startRender();
+        this.config.touchEnd();
     }
 
 
@@ -124,43 +137,57 @@
     /* *********************************************************
     *  Rendering
     ********************************************************** */
-    
-
     Scroll.prototype.startRender = function(){
-        if(!this.isRender){
-            this.isRender = true;
+        if(typeof this.renderingID == 'undefined'){
+            // this.event_dispatch(this.EVENT_SCROLLSTART);
+            this.config.start();
             this.renderingID = requestAnimationFrame(this.onRender);
-            this.event_dispatch(this.EVENT_SCROLLSTART);
         }
     }
 
     Scroll.prototype.stopRender = function(){
-        this.isRender = false;
+        this.config.stop();
         cancelAnimationFrame(this.renderingID);
+        this.renderingID = undefined;
+        this.offset = 0;
     }
 
     Scroll.prototype.onRender = function(){
-        if(!this.isRender){
-            this.offset = 0;
+        if(Math.abs(this.offset) < 0.001){
+            this.stopRender();
+            this.config.step(this.offset);
+            // this.event_dispatch(this.EVENT_SCROLLAFTER);
             return;
         }
 
         this.offset *= this.config.friction;
-        this.config.step(); 
+        this.config.step(this.offset);
 
-        var check = this.offset < 0? this.offset*-1:this.offset;
-        if(check > 0.00001){
-            this.renderingID = requestAnimationFrame(this.onRender);
-        }else{
-            this.isRender = false;
-            this.event_dispatch(this.EVENT_SCROLLAFTER);
-        }
-
-        // console.log(this.offset)
+        this.renderingID = requestAnimationFrame(this.onRender);
     }
-
-
-
 
     this.Scroll = Scroll;
 }).apply(window);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

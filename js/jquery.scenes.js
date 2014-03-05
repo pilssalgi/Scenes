@@ -1,9 +1,24 @@
 /**
  * 2013.03.
- * Scenes ver 0.01
+ * Scenes ver 0.08
  * Author : Heonwongeun
  * FaceBook : https://www.facebook.com/heo.wongeun
  */
+
+
+ /* ************************************************************
+    HOW TO USE
+    
+    Scenes.addScene(sceneID,sceneFrame,type,option)
+    Scenes.addSceneActor(sceneID,fn)
+    Scenes.addFrameActor(startFrame,totalFrame,fn)
+    Scenes.addSceneFrameActor(sceneID,startFrame,totalFrame,fn)
+    Scenes.addSceneFrameStartActor(sceneID,fn)
+    Scenes.addSceneFrameEndActor(sceneID, fn)
+    Scenes.addSceneActorSet(sceneID, start, main, end)
+
+ ************************************************************ */
+
 
 (function(){
     var _bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
@@ -15,7 +30,7 @@
     function Scenes(option){
         var scope       = this;
 
-        this.option     = { infoView : false}
+        this.option     = { stats : false}
         $.extend(this.option,option);
 
         this.scrollPossible = true;
@@ -32,6 +47,7 @@
         this.browserCheck();
         this.addEvent();
     }
+    Scenes.prototype.constructor = Scenes;
 
     //update
     function frameUpdate(offset){
@@ -60,8 +76,8 @@
             this.root.scenes[o].estimation();
         }
     }
+    
 
-    Scenes.prototype.constructor = Scenes;
     /* *********************************************************
     *  SCROLL EVENT 
     ********************************************************** */
@@ -89,20 +105,47 @@
         }
     }
 
-    Scenes.prototype.removeScene = function(sceneID){
-        
-    }
-
-    Scenes.prototype.addToScene = function(sceneID,fn){
+    Scenes.prototype.addSceneActor = function(sceneID,fn){
         if(typeof this.getScene(sceneID) != "undefined"){
             this.getScene(sceneID).add(fn);
         }
     };
 
-    Scenes.prototype.addToActor = function(startFrame,totalFrame,fn){
+    Scenes.prototype.addFrameActor = function(startFrame,totalFrame,fn){
         var actor   = new Actor(startFrame,totalFrame,fn);
         actor.stage = this;
         this.actors.push(actor);
+    }
+
+    Scenes.prototype.addSceneFrameActor = function(sceneID,startFrame,totalFrame,fn){
+        var tgScene = this.getScene(sceneID);
+        if(typeof tgScene == "undefined")return;
+        if(startFrame == 0 && totalFrame == 0)startFrame = 1;
+        var actor   = new Actor(tgScene.frame.start+startFrame,totalFrame,fn);
+        actor.stage = this;
+        this.actors.push(actor);
+    }
+
+    Scenes.prototype.addSceneFrameStartActor = function(sceneID, fn){
+        var tgScene = this.getScene(sceneID);
+        if(typeof tgScene == "undefined")return;
+        var actor   = new Actor(tgScene.frame.start + 1, 0, fn);
+        actor.stage = this;
+        this.actors.push(actor);
+    }
+
+    Scenes.prototype.addSceneFrameEndActor = function(sceneID, fn){
+        var tgScene = this.getScene(sceneID);
+        if(typeof tgScene == "undefined")return;
+        var actor   = new Actor(tgScene.frame.end - 1, 0, fn);
+        actor.stage = this;
+        this.actors.push(actor);
+    }
+
+    Scenes.prototype.addSceneActorSet = function(sceneID, start, main, end){
+        if(start) this.addSceneFrameStartActor(sceneID, start);
+        if(main) this.addSceneActor(sceneID, main);
+        if(end) this.addSceneFrameEndActor(sceneID, end);
     }
 
 
@@ -130,11 +173,9 @@
 
             if(offset > 0){
                 this.frame.update(this.getScene(this.scene.estimate).frame.start-this.frame.current);
-                console.log(this.frame.current, this.frame.estimate);
                 this.animation();
             }else{
                 this.frame.update(this.getScene(this.scene.estimate).frame.end-this.frame.current);
-                console.log(this.frame.current, this.frame.estimate);
                 this.animation();
                 this.scene.current  = estimate;
                 this.scene.estimate = estimate;
@@ -142,23 +183,26 @@
             }
 
             // $(this).trigger(this.EVENT_DELETE_SCROLL);
-            this.scrollPossible = false;
-            this.scrollPossibleOn(300);
+            // this.scrollPossible = false;
+            // this.scrollPossibleOn(500);
+            
         }else{
             if(!this.scrollPossible)return;
             if(type == "normal"){
                 this.frame.update(offset);
                 this.animation();
             }else if(type == "quick"){
-
                 if(offset > 0){
                     tgScene         = this.getScene(this.scene.current+1);
                     this.direction  = 1;
+                    if(typeof tgScene != "undefined")this.gotoScene(tgScene.id,this.scene.scene.option);
+                    // console.log(this.scene.scene.option);
                 }else{
                     tgScene         = this.getScene(this.scene.current);
                     this.direction  = -1;
+                    if(typeof tgScene != "undefined")this.gotoScene(tgScene.id,tgScene.option);
                 }
-                if(typeof tgScene != "undefined")this.gotoAndScene(tgScene.id);
+
             }
         }
     }
@@ -172,7 +216,7 @@
             var nextScene       = this.scene.current+1;
 
             this.scrollPossible = false;
-            this.gotoAndFrame(this.scenes[nextScene].frame.start);
+            this.gotoFrame(this.scenes[nextScene].frame.start);
             this.scene.update(nextScene);
         }
     }
@@ -182,22 +226,21 @@
             var prevScene = this.scene.current-1;
 
             this.scrollPossible = false;
-            this.gotoAndFrame(this.scenes[prevScene].frame.start);
+            this.gotoFrame(this.scenes[prevScene].frame.start);
             this.scene.update(prevScene);
         }
     }
 
-    Scenes.prototype.gotoAndScene = function(sceneID){
+    Scenes.prototype.gotoScene = function(sceneID,option){
+        if(!this.scrollPossible)return;
         this.scrollPossible = false;
         if(this.scene.current < sceneID){
             this.direction = 1;
-            this.gotoAndFrame(this.getScene(sceneID).frame.start,this.getScene(this.scene.current).option);
+            this.gotoFrame(this.getScene(sceneID).frame.start,option);
         }else{
             this.direction = 0;
-            this.gotoAndFrame(this.getScene(sceneID).frame.start,this.getScene(this.scene.current).option);
+            this.gotoFrame(this.getScene(sceneID).frame.start,option);
         }
-        
-        // console.log(this.getScene(sceneID))
     }
 
     /* *********************************************************
@@ -207,12 +250,18 @@
         for(var o in this.scenes)this.scenes[o].update();
         for(var a in this.actors)this.actors[a].update();
 
-        if(this.option.infoView)this.status();
+        if(this.option.stats)this.status();
     }
 
-    Scenes.prototype.gotoAndFrame = function(tgFrame,option) {
+    Scenes.prototype.gotoFrame = function(tgFrame,option) {
         var obj = { current : tgFrame, estimate : tgFrame },scope = this, config = typeof option != "undefined"?option:{duration:1000,ease:"easeInOutQuint"};
-        $(this.frame).stop().clearQueue().animate( obj, { step : stepAnimation, duration : config.duration, easing :config.ease, complete : onComplete });
+        if(config.duration==0){
+            $.extend(this.frame,obj);
+            onComplete();
+        }else{
+            $(this.frame).stop().clearQueue().animate( obj, { step : stepAnimation, duration : config.duration, easing :config.ease, complete : onComplete });    
+        }
+        
         function onComplete(){
             stepAnimation();
             $(scope).trigger(scope.EVENT_DELETE_SCROLL);
@@ -221,9 +270,9 @@
             var option = scope.scene.scene.option;
 
             if(scope.direction > 0){
-                if(option.jump && typeof option.jump.next != "undefined")scope.gotoAndScene(scope.scene.scene.option.jump.next);
+                if(option.jump && typeof option.jump.next != "undefined")scope.gotoScene(scope.scene.scene.option.jump.next,scope.scene.scene.option);
             }else{
-                if(option.jump && typeof option.jump.prev != "undefined")scope.gotoAndScene(scope.scene.scene.option.jump.prev);
+                if(option.jump && typeof option.jump.prev != "undefined")scope.gotoScene(scope.scene.scene.option.jump.prev,scope.scene.scene.option);
             }
         }
 
@@ -295,10 +344,11 @@
         }
 
         this.update = function(){
-            this.progress = (this.parent.frame.current - this.frame.start)/this.frame.total;
+            this.progress = ((this.parent.frame.current - this.frame.start)/this.frame.total).toFixed(6);
+            this.progress = Number(this.progress);
             if(this.progress >= 0 && this.progress <= 1){
                 this.sceneCheck();
-                for(var f in this.objs)this.objs[f]();
+                if(this.oldProgress != this.progress)for(var f in this.objs)this.objs[f](this.progress);
             }else{
                 this.overCheck();
             }
@@ -322,11 +372,11 @@
             if(this.progress < 0)this.progress = 0;
             if(this.progress > 1)this.progress = 1;
             if(this.oldProgress != this.progress){
-                for(var f in this.objs)this.objs[f]();
+                for(var f in this.objs)this.objs[f](this.progress);
             }
         }
 
-        this.timefactor = function(startF,totalF){
+        this.timeRevision = function(startF,totalF){
             var totalframe = typeof totalF=="undefined"?(this.frame.total - startF):totalF,
                 newPogress = (this.parent.frame.current - this.frame.start - startF) / totalframe // (totalF != "undefined"?totalF:(this.frame.total - startF)); 
             if(newPogress < 0) newPogress = 0;
@@ -346,9 +396,11 @@
         this.frame          = { start : startFrame , end : startFrame+totalFrame, total:totalFrame }; 
 
         this.update = function(){
-            this.progress = (this.stage.frame.current - this.frame.start)/this.frame.total;
+            this.progress = ((this.stage.frame.current - this.frame.start)/this.frame.total).toFixed(6);;
+            this.progress = Number(this.progress);
+
             if(this.progress >= 0 && this.progress <= 1){
-                this.act();
+                if(this.oldProgress != this.progress)this.act(this.progress);
             }else{
                 this.overCheck();
             }
@@ -361,7 +413,7 @@
             if(this.progress > 1)this.progress = 1;
             if(this.oldProgress != this.progress){
                 if(Math.floor(this.oldProgress) == 1 || Math.floor(this.oldProgress) == 0){
-                    this.act();
+                    this.act(this.progress);
                 }
             }
         }
@@ -373,10 +425,6 @@
     /* *********************************************************
     *  UTILITY FUNCTION
     ********************************************************** */
-    function undefinedCheck(obj){
-        return typeof obj != "undefined" ? obj : "undefined";
-    }
-
     Scenes.prototype.windowWidth = function(){
         if (document.documentElement.clientWidth) {
             this.sw = document.documentElement.clientWidth;
@@ -390,6 +438,7 @@
     Scenes.prototype.windowHeight = function(){
         if (document.documentElement.clientHeight) {
             this.sh = document.documentElement.clientHeight;
+            
         } else if (document.body.clientHeight) {
             this.sh = document.body.clientHeight;
         } else if (window.innerHeight) {
