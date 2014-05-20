@@ -1,6 +1,6 @@
 /**
  * 2014.01
- * Scroll ver 0.07
+ * Scroll ver 0.09
  */
 
 (function () {
@@ -28,6 +28,7 @@
 
     function Scroll(option){
         this.config     = {
+            target      : document,
             speed       : 0.1,
             friction    : 0.94,
             touchSpeed  : 5,
@@ -50,16 +51,16 @@
         
         //wheelEvent
         this.onWheel = _bind(this.onWheel,this);
-        $(document).bind("mousewheel", this.onWheel);
+        $(this.config.target).bind("mousewheel", this.onWheel);
 
         //touchEvent
         this.onTouchStart   = _bind(this.onTouchStart,this);
         this.onTouchMove    = _bind(this.onTouchMove,this);
         this.onTouchEnd     = _bind(this.onTouchEnd,this);
 
-        $(document).bind("touchstart", this.onTouchStart);
-        $(document).bind("touchmove", this.onTouchMove);
-        $(document).bind("touchend", this.onTouchEnd);
+        $(this.config.target).bind("touchstart", this.onTouchStart);
+        $(this.config.target).bind("touchmove", this.onTouchMove);
+        $(this.config.target).bind("touchend", this.onTouchEnd);
     };
 
     Scroll.prototype.constructor = Scroll;
@@ -126,7 +127,7 @@
 
 
     Scroll.prototype.onWheel = function(event, delta, deltaX, deltaY){
-        if(delta > 0){
+        if(deltaY > 0){
             this.offset -= this.config.speed;
         }else if(delta < 0){
             this.offset += this.config.speed;
@@ -152,6 +153,7 @@
         this.offset = 0;
     }
 
+    var oldOffset = -1;
     Scroll.prototype.onRender = function(){
         if(Math.abs(this.offset) < 0.001){
             this.stopRender();
@@ -161,33 +163,15 @@
         }
 
         this.offset *= this.config.friction;
-        this.config.step(this.offset);
+        this.offset = Number(this.offset.toFixed(4));
 
+        if(oldOffset != this.offset){
+            this.config.step(this.offset);
+        }
+
+        oldOffset = this.offset
         this.renderingID = requestAnimationFrame(this.onRender);
     }
 
     this.Scroll = Scroll;
 }).apply(window);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

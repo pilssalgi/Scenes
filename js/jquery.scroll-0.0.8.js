@@ -3,6 +3,9 @@
  * Scroll ver 0.08
  */
 
+//scroll = new Scroll({speed:1.7, friction:0.89, touchSpeed:10, step:scrolling});
+
+
 (function () {
     var _bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
     var getPagePos = function(e){
