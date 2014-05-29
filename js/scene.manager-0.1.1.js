@@ -1,9 +1,13 @@
-/**
- * 2013.03.
- * Scenes ver 0.09
- * Author : Heonwongeun
+ /**
+ * 2013.03
+ * scene ver 0.1.1
+ *
+ * Author   : Heonwongeun
  * FaceBook : https://www.facebook.com/heo.wongeun
+ * github   : https://github.com/pilssalgi/Scenes
+ * mail     : heowongeun@gmail.com
  */
+
 
  /* ************************************************************
      HOW TO USE
@@ -12,6 +16,7 @@
     Scenes.addSceneActor(sceneID,fn)
     Scenes.addFrameActor(startFrame,totalFrame,fn)
     Scenes.addSceneFrameActor(sceneID,startFrame,totalFrame,fn)
+    Scenes.addSceneFrameStartActor(sceneID, fn)
     Scenes.addSceneFrameEndActor(sceneID, fn)
     Scenes.addSceneActorSet(sceneID, start, main, end)
  ************************************************************ */
@@ -27,12 +32,12 @@
     function Scenes(option){
         var scope       = this;
 
-        this.option     = { stats : false}
+        this.option     = { stats : false }
         $.extend(this.option,option);
 
         this.scrollPossible = true;
-        this.frame      = { root:scope, current:0, old:0, total:0 , estimate:0, estimation:frameEstimation, update:frameUpdate, direction:0};
-        this.scene      = { root:scope, current:0, old:0, total:0 , estimate:0, estimation:sceneEstimation, update:sceneUpdate, scene:null, type:null, jump:null, link : null};
+        this.frame      = { root:scope, current:0, old:0, total:0, estimate:0, estimation:frameEstimation, update:frameUpdate, direction:0 , resistance : [] };
+        this.scene      = { root:scope, current:0, old:0, total:0, estimate:0, estimation:sceneEstimation, update:sceneUpdate, scene:null, type:null, jump:null, link : null};
         this.type       = { current:null, old:null };
         this.direction  = "";
 
@@ -50,6 +55,19 @@
     function frameUpdate(offset){
         if(this.current < 0 )this.current += -this.current*0.7;
         if(this.current > this.total )this.current += (this.total-this.current)*0.7;
+
+        if(offset > 0){
+            for(var o in this.resistance){
+                var resistance = this.resistance[o];
+                if(this.current > resistance.start && this.current < resistance.total){
+                    resistance.amount += offset*resistance.speed;
+                    this.current += (resistance.start+resistance.amount-this.current)*resistance.speed;
+                }else{
+                    resistance.amount = 0;
+                }    
+            }
+        }
+
         this.current    += offset;
         this.direction  = this.current-this.old;
         this.old        = this.current;
@@ -123,6 +141,17 @@
         this.actors.push(actor);
     }
 
+    Scenes.prototype.addresistance = function(sceneID,startFrame,totalFrame,speed){
+        var tgScene = this.getScene(sceneID);
+        if(typeof tgScene == "undefined")return;
+        this.frame.resistance.push({
+            start   : tgScene.frame.start+startFrame,
+            total   : tgScene.frame.start+startFrame+totalFrame,
+            amount  : 0,
+            speed   : typeof speed == "undefined"?0.5:speed
+        })
+    }
+
     Scenes.prototype.addSceneFrameStartActor = function(sceneID, fn){
         var tgScene = this.getScene(sceneID);
         if(typeof tgScene == "undefined")return;
@@ -158,6 +187,7 @@
 
     Scenes.prototype.update = function(offset,type){
         if(offset == 0)return;
+        if(!this.scrollPossible)return;
         var type = this.scene.type,estimate,tgScene;
         if(this.scrollPossible){
             this.frame.estimation(offset);
@@ -166,8 +196,7 @@
         }
 
         if(this.scene.current != this.scene.estimate){
-            if(!this.scrollPossible)return;
-
+            // if(!this.scrollPossible)return;
             if(offset > 0){
                 this.frame.update(this.getScene(this.scene.estimate).frame.start-this.frame.current);
                 this.animation();
@@ -184,25 +213,41 @@
             // this.scrollPossibleOn(500);
             
         }else{
-            if(!this.scrollPossible)return;
+            // if(!this.scrollPossible)return;
             if(type == "normal"){
                 this.frame.update(offset);
                 this.animation();
             }else if(type == "quick"){
-                if(offset > 0){
-                    tgScene         = this.getScene(this.scene.current+1);
-                    this.direction  = 1;
-                    if(typeof tgScene != "undefined")this.gotoScene(tgScene.id,this.scene.scene.option);
-                    // console.log(this.scene.scene.option);
-                }else{
-                    tgScene         = this.getScene(this.scene.current);
-                    this.direction  = -1;
-                    if(typeof tgScene != "undefined")this.gotoScene(tgScene.id,tgScene.option);
-                }
 
+                
+                if(this.scene.current == this.scene.total){ //last scene
+                    var scene = this.getScene(this.scene.total);
+                    this.scrollPossible = false;
+                    if(offset > 0){
+                        this.direction  = 1;
+                        this.gotoFrame(scene.frame.end,scene.option);
+                    }else{
+                        this.direction  = -1;
+                        this.gotoFrame(scene.frame.start,scene.option);
+                    }
+                }else{
+                    if(offset > 0){
+                        tgScene         = this.getScene(this.scene.current+1);
+                        this.direction  = 1;
+                        if(typeof tgScene != "undefined")this.gotoScene(tgScene.id,this.scene.scene.option);
+                    }else{
+                        var sceneID = this.scene.current==this.scene.total-1?this.scene.current:this.scene.current;
+
+                        tgScene         = this.getScene(sceneID);
+                        this.direction  = -1;
+                        if(typeof tgScene != "undefined")this.gotoScene(tgScene.id,tgScene.option);
+                    }
+                }
             }
         }
     }
+
+    // Scenes.prototype.
 
     /* *********************************************************
     *   Scene Function
@@ -231,6 +276,7 @@
     Scenes.prototype.gotoScene = function(sceneID,option){
         if(!this.scrollPossible)return;
         this.scrollPossible = false;
+
         if(this.scene.current < sceneID){
             this.direction = 1;
             this.gotoFrame(this.getScene(sceneID).frame.start,option);
@@ -247,7 +293,7 @@
         for(var o in this.scenes)this.scenes[o].update();
         for(var a in this.actors)this.actors[a].update();
 
-        if(this.option.stats)this.status();
+        if(this.option.stats && this.scenes.length > 0)this.status();
     }
 
     Scenes.prototype.gotoFrame = function(tgFrame,option) {
@@ -299,11 +345,29 @@
     ********************************************************** */
     Scenes.prototype.status = function(){
         if(typeof this.sceneStatus == 'undefined'){
-            this.sceneStatus = "<div id='sceneStatus' style='position:absolute; z-index:1000000; padding:10px; font-size:12px; background-color:#000; color:#fff'></div>"
-            $('body').prepend(this.sceneStatus);
-            this.sceneStatus = $("#sceneStatus");
+            this.sceneStatus = $("<div id='sceneStatus'></div>").prependTo($('body'));
+            this.sceneStatus.css({
+                'position' : 'absolute',
+                'z-index': 1000000,
+                'padding': 10,
+                'font-size' : 10,
+                'font-weight' : 300,
+                'text-transform' : 'uppercase',
+                'background-color' : 'rgba(0,0,0,0.8)',
+                'color' : '#fff',
+                'width' : 200,
+                'letter-spacing' : '0.02em',
+                'line-height' : '1.7em',
+                'font-family' : 'Helvetica'
+            })
         }
-        this.sceneStatus.html("<br>" +"frame =" + this.frame.current.toFixed(1) + "<br>" +"totalframe = " + this.frame.total + "<br>" +"currentScene = " + this.scene.current);
+
+        var currentScene = this.scenes[this.scene.current];
+        this.sceneStatus.html(
+            "total scene / frame = " + this.scene.total + " / " + this.frame.total + "<br>" + 
+            "- scene / frame  = " + currentScene.id + " / " + this.frame.current.toFixed(1) + "<br>" +
+            "- scene frame = " + (this.frame.current - currentScene.frame.start).toFixed(1)
+        )
     }
     
 
@@ -343,6 +407,7 @@
         this.update = function(){
             this.progress = ((this.parent.frame.current - this.frame.start)/this.frame.total).toFixed(6);
             this.progress = Number(this.progress);
+            
             if(this.progress >= 0 && this.progress <= 1){
                 this.sceneCheck();
                 if(this.oldProgress != this.progress)for(var f in this.objs)this.objs[f](this.progress);
